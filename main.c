@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <unistd.h>
 #include "config.h"
+#include "stdbool.h"
+#include "fcntl.h"
 
 const uint16_t PORT = 12345;
 
@@ -30,24 +32,24 @@ int main(int argc, const char* const argv[]) {
     bzero(&server_addr, sizeof server_addr);
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    inet_aton("127.0.1.1", &server_addr.sin_addr);
+//    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof server_addr) < 0) {
         perror("bind");
         exit(2);
     }
 
-    for (;;) {
-        printf("... "); fflush(stdout);
-
+    while (true) {
         if ((len_in = recvfrom(server_socket, buf_in, sizeof buf_in, 0, (struct sockaddr*)&client_addr, &client_addr_len)) < 0)
             continue;
-
-        printf("%s:%d ->\n", inet_ntoa(client_addr.sin_addr), htons(client_addr.sin_port)); fflush(stdout);
-
-        sendto(server_socket, buf_in, len_in, 0, (struct sockaddr*)&client_addr, client_addr_len);
+        sendto(server_socket, buf_in, len_in, 0, (struct sockaddr*)&client_addr, client_addr_len);;
+        printf("%s:%d ->\n", inet_ntoa(client_addr.sin_addr), htons(client_addr.sin_port));
+        int fd = open("request", O_RDWR);
+        write(fd, buf_in, sizeof buf_in);
+        close(fd);
+//        fflush(stdout);
     }
-
     close(server_socket);
 
     return 0;
